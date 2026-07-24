@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace HongXunPan\SimpleEvent\Execution;
+
+final readonly class EventResult
+{
+    /** @param list<ListenerResult> $listeners */
+    public function __construct(public array $listeners)
+    {
+    }
+
+    public function succeeded(): bool
+    {
+        foreach ($this->listeners as $listener) {
+            if (!$listener->succeeded) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}

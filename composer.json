@@ -1,0 +1,47 @@
+{
+    "name": "hongxunpan/simple-event",
+    "description": "Event module for hongxunpan/simple-framework",
+    "type": "simple-module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "HongXunPan",
+            "email": "me@kangxuanpeng.com"
+        }
+    ],
+    "require": {
+        "php": "^8.5",
+        "ext-json": "*",
+        "hongxunpan/simple-framework": "^0.3",
+        "symfony/property-access": "^7.0",
+        "symfony/property-info": "^7.0",
+        "symfony/serializer": "^7.0"
+    },
+    "suggest": {
+        "hongxunpan/simple-redis": "使用 Redis Streams 异步 Driver 时需要 ^0.1"
+    },
+    "conflict": {
+        "hongxunpan/simple-redis": "<0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "HongXunPan\\SimpleEvent\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "HongXunPan\\SimpleEvent\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "simple": {
+            "module": "HongXunPan\\SimpleEvent\\EventModule"
+        }
+    },
+    "scripts": {
+        "test": "@php tests/TestRunner.php"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
