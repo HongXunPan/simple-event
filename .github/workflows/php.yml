@@ -11,6 +11,19 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      SIMPLE_EVENT_TEST_REDIS_HOST: 127.0.0.1
+      SIMPLE_EVENT_TEST_REDIS_PORT: 6379
     steps:
       - name: 检出代码
         uses: actions/checkout@v4

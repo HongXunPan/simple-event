@@ -44,6 +44,8 @@ final class RedisFailingSampleListener implements ShouldQueue
 function redisEventTestConfig(string $connection = 'default'): array
 {
     $suffix = (string)(getmypid() ?: 0);
+    $host = getenv('SIMPLE_EVENT_TEST_REDIS_HOST') ?: 'gplus-redis';
+    $port = (int)(getenv('SIMPLE_EVENT_TEST_REDIS_PORT') ?: 6379);
 
     return [
         'events' => [
@@ -67,8 +69,8 @@ function redisEventTestConfig(string $connection = 'default'): array
         'redis' => [
             'connections' => [
                 'default' => [
-                    'host' => 'gplus-redis',
-                    'port' => 6379,
+                    'host' => $host,
+                    'port' => $port,
                     'database' => 15,
                     'prefix' => 'simple-event-tests:',
                 ],
