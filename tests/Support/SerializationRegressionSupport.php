@@ -140,7 +140,7 @@ function makeSerializationRegressionMessage(): EventMessage
         createdAt: new DateTimeImmutable('2026-07-11T12:35:00.654321+08:00'),
         event: new SerializationRegressionOccurred(
             id: 7,
-            name: '校友卡审核通过',
+            name: '示例事件',
             note: null,
             enabled: true,
             score: 9.5,

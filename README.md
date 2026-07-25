@@ -39,14 +39,14 @@ namespace App\Events;
 use DateTimeImmutable;
 use HongXunPan\SimpleEvent\Event;
 
-final readonly class AlumniCardApproved implements Event
+final readonly class SampleOccurred implements Event
 {
     public const int VERSION = 1;
 
     public function __construct(
-        public int $alumniCardId,
+        public int $sampleId,
         public int $userId,
-        public DateTimeImmutable $approvedAt,
+        public DateTimeImmutable $occurredAt,
     ) {
     }
 }
@@ -69,13 +69,13 @@ final readonly class AlumniCardApproved implements Event
 
 namespace App\Listeners;
 
-use App\Events\AlumniCardApproved;
+use App\Events\SampleOccurred;
 
-final class WriteApprovalAuditLog
+final class WriteSampleAuditLog
 {
-    public function handle(AlumniCardApproved $event): void
+    public function handle(SampleOccurred $event): void
     {
-        // 写入审计事实。
+        // 写入示例审计事实。
     }
 }
 ```
@@ -87,12 +87,12 @@ final class WriteApprovalAuditLog
 
 namespace App\Listeners;
 
-use App\Events\AlumniCardApproved;
+use App\Events\SampleOccurred;
 use HongXunPan\SimpleEvent\Listener\ShouldQueue;
 
-final class SendApprovalNotification implements ShouldQueue
+final class SendSampleNotification implements ShouldQueue
 {
-    public function handle(AlumniCardApproved $event): void
+    public function handle(SampleOccurred $event): void
     {
         // 异步副作用必须按业务唯一事实保证幂等。
     }
@@ -115,13 +115,13 @@ final class SendApprovalNotification implements ShouldQueue
 ```php
 <?php
 
-use App\Events\AlumniCardApproved;
-use App\Listeners\WriteApprovalAuditLog;
+use App\Events\SampleOccurred;
+use App\Listeners\WriteSampleAuditLog;
 
 return [
     'listeners' => [
-        AlumniCardApproved::class => [
-            WriteApprovalAuditLog::class,
+        SampleOccurred::class => [
+            WriteSampleAuditLog::class,
         ],
     ],
 ];
@@ -130,10 +130,10 @@ return [
 触发：
 
 ```php
-event(new AlumniCardApproved(
-    alumniCardId: 1,
+event(new SampleOccurred(
+    sampleId: 1,
     userId: 10001,
-    approvedAt: new DateTimeImmutable(),
+    occurredAt: new DateTimeImmutable(),
 ));
 ```
 
@@ -148,7 +148,7 @@ use HongXunPan\SimpleEvent\Listener\ShouldHandleBestEffort;
 
 final class OptionalListener implements ShouldHandleBestEffort
 {
-    public function handle(AlumniCardApproved $event): void
+    public function handle(SampleOccurred $event): void
     {
     }
 }
@@ -187,14 +187,14 @@ return [
 ```php
 <?php
 
-use App\Events\AlumniCardApproved;
-use App\Listeners\SendApprovalNotification;
+use App\Events\SampleOccurred;
+use App\Listeners\SendSampleNotification;
 use HongXunPan\SimpleEvent\Driver\Redis\RedisStreamDriver;
 
 return [
     'listeners' => [
-        AlumniCardApproved::class => [
-            SendApprovalNotification::class,
+        SampleOccurred::class => [
+            SendSampleNotification::class,
         ],
     ],
     'driver' => [
