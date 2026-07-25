@@ -17,6 +17,9 @@
         "symfony/property-info": "^7.0",
         "symfony/serializer": "^7.0"
     },
+    "require-dev": {
+        "hongxunpan/simple-redis": "^0.1"
+    },
     "suggest": {
         "hongxunpan/simple-redis": "使用 Redis Streams 异步 Driver 时需要 ^0.1"
     },
