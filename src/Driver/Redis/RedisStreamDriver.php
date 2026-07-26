@@ -6,7 +6,6 @@ namespace HongXunPan\SimpleEvent\Driver\Redis;
 
 use HongXunPan\DB\Redis\Redis;
 use HongXunPan\Framework\Core\Application;
-use HongXunPan\Framework\Module\ModuleConfig;
 use HongXunPan\SimpleEvent\Config\DriverConfig;
 use HongXunPan\SimpleEvent\Consumer\Consumer;
 use HongXunPan\SimpleEvent\Driver\Driver;
@@ -15,7 +14,6 @@ use HongXunPan\SimpleEvent\Exception\EventPublishException;
 use HongXunPan\SimpleEvent\Message\EventMessage;
 use HongXunPan\SimpleEvent\Serialization\Serializer;
 use HongXunPan\SimpleRedis\Config\RedisConfig;
-use HongXunPan\SimpleRedis\RedisModule;
 use Throwable;
 
 final readonly class RedisStreamDriver implements Driver
@@ -35,16 +33,13 @@ final readonly class RedisStreamDriver implements Driver
     public static function validateConfig(DriverConfig $config, Application $app): void
     {
         $options = RedisStreamConfig::fromDriverConfig($config);
-        if (!class_exists(RedisModule::class) || !class_exists(Redis::class)) {
+        if (!class_exists(Redis::class) || !class_exists(RedisConfig::class)) {
             throw new EventConfigException(
                 'RedisStreamDriver 需要安装 hongxunpan/simple-redis ^0.1',
             );
         }
-        if (!$app->make(ModuleConfig::class)->isEnabled(RedisModule::class)) {
-            throw new EventConfigException('RedisStreamDriver 需要先启用 redis Module');
-        }
         if (!$app->bound(Redis::class) || !$app->bound(RedisConfig::class)) {
-            throw new EventConfigException('redis Module 尚未完成容器绑定');
+            throw new EventConfigException('Redis 运行时尚未完成容器绑定');
         }
 
         $connections = $app->make(RedisConfig::class)->connections();

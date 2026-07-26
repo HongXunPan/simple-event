@@ -216,6 +216,10 @@ return [
 Redis host、认证、TLS、database 和 prefix 属于 Redis Module；stream、group、批次、
 pending 回收和 failed stream 属于 Event Driver。两个配置边界不能混用。
 
+`RedisStreamDriver` 不读取或编辑 `module.enable`，只校验 Redis 公开类型、容器绑定与所选
+命名连接。通常由已启用的 Redis Module 提供这些运行时能力；项目若替换 Redis Provider，
+也必须完整提供相同公开绑定。
+
 ### Worker
 
 单轮消费：

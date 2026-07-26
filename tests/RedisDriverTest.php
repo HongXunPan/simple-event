@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use HongXunPan\DB\Redis\Redis;
-use HongXunPan\Framework\Module\ModuleConfig;
 use HongXunPan\SimpleEvent\Dispatch\Dispatcher;
 use HongXunPan\SimpleEvent\Driver\Redis\RedisStreamDriver;
 use HongXunPan\SimpleEvent\Event;
@@ -79,31 +78,21 @@ function redisEventTestConfig(string $connection = 'default'): array
     ];
 }
 
-$tests['Redis Driver 要求 redis Module 已启用'] = static function (): void {
+$tests['Redis Driver 要求 Redis 运行时完成容器绑定'] = static function (): void {
     $app = makeEventApplication(redisEventTestConfig());
-    $app->instance(
-        ModuleConfig::class,
-        new ModuleConfig(__DIR__ . '/fixtures/redis-disabled'),
-    );
     $eventProvider = new EventServiceProvider();
-    $redisProvider = new RedisServiceProvider();
     $eventProvider->register($app);
-    $redisProvider->register($app);
 
     assertEventThrows(
         EventConfigException::class,
         static fn () => $eventProvider->boot($app),
-        '启用 redis Module',
-        'Redis Driver 在 redis Module 未启用时仍完成启动',
+        'Redis 运行时尚未完成容器绑定',
+        'Redis Driver 在运行时能力未绑定时仍完成启动',
     );
 };
 
 $tests['Redis Driver 拒绝不存在的命名连接'] = static function (): void {
     $app = makeEventApplication(redisEventTestConfig('missing'));
-    $app->instance(
-        ModuleConfig::class,
-        new ModuleConfig(__DIR__ . '/fixtures/redis-enabled'),
-    );
     $eventProvider = new EventServiceProvider();
     $redisProvider = new RedisServiceProvider();
     $eventProvider->register($app);
@@ -122,10 +111,6 @@ $tests['Redis Streams 完成发布、白名单消费与确认'] = static functio
     $configuration = redisEventTestConfig();
     $options = $configuration['events']['driver']['options'];
     $app = makeEventApplication($configuration);
-    $app->instance(
-        ModuleConfig::class,
-        new ModuleConfig(__DIR__ . '/fixtures/redis-enabled'),
-    );
     $eventProvider = new EventServiceProvider();
     $redisProvider = new RedisServiceProvider();
     $eventProvider->register($app);
@@ -161,10 +146,6 @@ $tests['Redis Streams 将监听器失败归档并清理主消息'] = static func
     ];
     $options = $configuration['events']['driver']['options'];
     $app = makeEventApplication($configuration);
-    $app->instance(
-        ModuleConfig::class,
-        new ModuleConfig(__DIR__ . '/fixtures/redis-enabled'),
-    );
     $eventProvider = new EventServiceProvider();
     $redisProvider = new RedisServiceProvider();
     $eventProvider->register($app);
@@ -201,10 +182,6 @@ $tests['Redis Streams 将非法 JSON 消息归档到 failed stream'] = static fu
     $configuration = redisEventTestConfig();
     $options = $configuration['events']['driver']['options'];
     $app = makeEventApplication($configuration);
-    $app->instance(
-        ModuleConfig::class,
-        new ModuleConfig(__DIR__ . '/fixtures/redis-enabled'),
-    );
     $eventProvider = new EventServiceProvider();
     $redisProvider = new RedisServiceProvider();
     $eventProvider->register($app);
