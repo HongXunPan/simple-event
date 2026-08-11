@@ -6,16 +6,25 @@ namespace HongXunPan\SimpleEvent\Trace;
 
 use HongXunPan\Framework\Core\Application;
 use HongXunPan\Framework\Core\Request;
+use HongXunPan\SimpleEvent\Execution\EventExecutionContext;
 use RuntimeException;
 
 final readonly class FrameworkRequestTraceIdProvider implements TraceIdProvider
 {
-    public function __construct(private Application $app)
-    {
+    public function __construct(
+        private Application $app,
+        private ?EventExecutionContext $executionContext = null,
+    ) {
     }
 
     public function traceId(): ?string
     {
+        if ($this->executionContext?->isActive()) {
+            return $this->executionContext->traceId();
+        }
+        if (isset($this->app->isCli) && $this->app->isCli) {
+            return null;
+        }
         if (!$this->app->bound(Request::class)) {
             return null;
         }

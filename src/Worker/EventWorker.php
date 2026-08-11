@@ -9,6 +9,7 @@ use HongXunPan\SimpleEvent\Consumer\Consumer;
 use HongXunPan\SimpleEvent\Consumer\ReceivedMessage;
 use HongXunPan\SimpleEvent\Exception\EventConsumeException;
 use HongXunPan\SimpleEvent\Execution\ErrorMessageSanitizer;
+use HongXunPan\SimpleEvent\Execution\EventExecutionContext;
 use HongXunPan\SimpleEvent\Execution\EventResult;
 use HongXunPan\SimpleEvent\Execution\Failure;
 use HongXunPan\SimpleEvent\Listener\ListenerRegistry;
@@ -26,6 +27,7 @@ final readonly class EventWorker
         private EventValidator $events,
         private ErrorMessageSanitizer $errors,
         private ListenerRegistry $listeners,
+        private EventExecutionContext $context,
     ) {
     }
 
@@ -50,6 +52,16 @@ final readonly class EventWorker
 
     private function process(ReceivedMessage $message): void
     {
+        $this->context->beginMessage($message->id);
+        try {
+            $this->processCurrentMessage($message);
+        } finally {
+            $this->context->clear();
+        }
+    }
+
+    private function processCurrentMessage(ReceivedMessage $message): void
+    {
         if ($message->body === '') {
             $this->fail(
                 $message,
@@ -63,6 +75,7 @@ final readonly class EventWorker
 
         try {
             $eventMessage = $this->serializer->deserialize($message->body);
+            $this->context->attachEventMessage($eventMessage);
         } catch (Throwable $throwable) {
             $this->fail($message, null, null, $throwable);
 

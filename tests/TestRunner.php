@@ -18,6 +18,7 @@ require __DIR__ . '/SerializationTest.php';
 require __DIR__ . '/SerializationRegressionTest.php';
 require __DIR__ . '/WorkerWhitelistTest.php';
 require __DIR__ . '/WorkerRegressionTest.php';
+require __DIR__ . '/ExecutionContextTest.php';
 require __DIR__ . '/RedisDriverTest.php';
 require __DIR__ . '/RedisRegressionTest.php';
 

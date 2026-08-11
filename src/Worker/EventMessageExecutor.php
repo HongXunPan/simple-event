@@ -6,6 +6,7 @@ namespace HongXunPan\SimpleEvent\Worker;
 
 use DateTimeImmutable;
 use HongXunPan\SimpleEvent\Execution\ErrorMessageSanitizer;
+use HongXunPan\SimpleEvent\Execution\EventExecutionContext;
 use HongXunPan\SimpleEvent\Execution\EventResult;
 use HongXunPan\SimpleEvent\Execution\ListenerResult;
 use HongXunPan\SimpleEvent\Listener\ListenerInvoker;
@@ -17,6 +18,7 @@ final readonly class EventMessageExecutor
     public function __construct(
         private ListenerInvoker $invoker,
         private ErrorMessageSanitizer $errors,
+        private EventExecutionContext $context,
     ) {
     }
 
@@ -26,6 +28,7 @@ final readonly class EventMessageExecutor
         foreach ($message->listeners as $index => $listenerClass) {
             $startedAt = new DateTimeImmutable();
             $startedAtTick = hrtime(true);
+            $this->context->enterListener($listenerClass);
 
             try {
                 $this->invoker->invoke($listenerClass, $message->event);
@@ -48,6 +51,8 @@ final readonly class EventMessageExecutor
                     errorClass: $throwable::class,
                     errorMessage: $this->errors->sanitize($throwable->getMessage()),
                 );
+            } finally {
+                $this->context->leaveListener();
             }
         }
 
