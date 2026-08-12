@@ -7,6 +7,7 @@ use HongXunPan\SimpleEvent\Consumer\Consumer;
 use HongXunPan\SimpleEvent\Consumer\ReceivedMessage;
 use HongXunPan\SimpleEvent\Event;
 use HongXunPan\SimpleEvent\Execution\ErrorMessageSanitizer;
+use HongXunPan\SimpleEvent\Execution\EventExecutionContext;
 use HongXunPan\SimpleEvent\Execution\Failure;
 use HongXunPan\SimpleEvent\Listener\ListenerFailureReporter;
 use HongXunPan\SimpleEvent\Listener\ListenerInvoker;
@@ -32,17 +33,23 @@ final class WorkerRegressionLog
 {
     /** @var list<string> */
     public array $entries = [];
+
+    /** @var list<array<string, string>> */
+    public array $contexts = [];
 }
 
 final readonly class WorkerRegressionListener implements ShouldQueue
 {
-    public function __construct(private WorkerRegressionLog $log)
-    {
+    public function __construct(
+        private WorkerRegressionLog $log,
+        private EventExecutionContext $context,
+    ) {
     }
 
     public function handle(WorkerRegressionOccurred $event): void
     {
         $this->log->entries[] = $event->name;
+        $this->log->contexts[] = $this->context->snapshot();
     }
 }
 
@@ -86,9 +93,17 @@ final class WorkerRegressionReporter implements ListenerFailureReporter
     /** @var list<class-string> */
     public array $listeners = [];
 
+    /** @var list<array<string, string>> */
+    public array $contexts = [];
+
+    public function __construct(private EventExecutionContext $context)
+    {
+    }
+
     public function report(string $listenerClass, Event $event, Throwable $throwable): void
     {
         $this->listeners[] = $listenerClass;
+        $this->contexts[] = $this->context->snapshot();
     }
 }
 
@@ -106,6 +121,8 @@ final class WorkerRegressionConsumer implements Consumer
     public int $receiveCalls = 0;
 
     public ?Throwable $receiveFailure = null;
+    public ?Throwable $acknowledgeFailure = null;
+    public ?Throwable $failFailure = null;
 
     /** @param list<ReceivedMessage> $messages */
     public function __construct(array $messages)
@@ -128,11 +145,17 @@ final class WorkerRegressionConsumer implements Consumer
 
     public function acknowledge(ReceivedMessage $message): void
     {
+        if ($this->acknowledgeFailure !== null) {
+            throw $this->acknowledgeFailure;
+        }
         $this->acknowledged[] = $message;
     }
 
     public function fail(ReceivedMessage $message, Failure $failure): void
     {
+        if ($this->failFailure !== null) {
+            throw $this->failFailure;
+        }
         $this->failed[] = compact('message', 'failure');
     }
 }
@@ -166,7 +189,8 @@ final readonly class WorkerRegressionSerializer implements Serializer
  *     worker: EventWorker,
  *     consumer: WorkerRegressionConsumer,
  *     log: WorkerRegressionLog,
- *     reporter: WorkerRegressionReporter
+ *     reporter: WorkerRegressionReporter,
+ *     executionContext: EventExecutionContext
  * }
  */
 function createWorkerRegressionContext(
@@ -177,12 +201,14 @@ function createWorkerRegressionContext(
     Application::setInstance($app);
     $log = new WorkerRegressionLog();
     $app->instance(WorkerRegressionLog::class, $log);
+    $executionContext = new EventExecutionContext();
+    $app->instance(EventExecutionContext::class, $executionContext);
 
     $consumer = new WorkerRegressionConsumer(
         $messages ?? [new ReceivedMessage('message-1', 'test-payload')],
     );
     $errors = new ErrorMessageSanitizer();
-    $reporter = new WorkerRegressionReporter();
+    $reporter = new WorkerRegressionReporter($executionContext);
     $events = new EventValidator();
     $registry = new ListenerRegistry($events, new ListenerValidator());
     foreach ([
@@ -197,13 +223,18 @@ function createWorkerRegressionContext(
     $worker = new EventWorker(
         $consumer,
         $serializer,
-        new EventMessageExecutor(new ListenerInvoker($app, $reporter), $errors),
+        new EventMessageExecutor(
+            new ListenerInvoker($app, $reporter),
+            $errors,
+            $executionContext,
+        ),
         $events,
         $errors,
         $registry,
+        $executionContext,
     );
 
-    return compact('worker', 'consumer', 'log', 'reporter');
+    return compact('worker', 'consumer', 'log', 'reporter', 'executionContext');
 }
 
 /**

@@ -16,6 +16,7 @@ use HongXunPan\SimpleEvent\Dispatch\Dispatcher;
 use HongXunPan\SimpleEvent\Driver\Driver;
 use HongXunPan\SimpleEvent\Exception\EventConfigException;
 use HongXunPan\SimpleEvent\Execution\ErrorMessageSanitizer;
+use HongXunPan\SimpleEvent\Execution\EventExecutionContext;
 use HongXunPan\SimpleEvent\Lifecycle\EventApplicationLifecycle;
 use HongXunPan\SimpleEvent\Listener\ErrorLogListenerFailureReporter;
 use HongXunPan\SimpleEvent\Listener\ListenerFailureReporter;
@@ -45,6 +46,7 @@ final class EventServiceProvider extends ServiceProvider
         $app->singletonIf(EventValidator::class);
         $app->singletonIf(ListenerValidator::class);
         $app->singletonIf(ErrorMessageSanitizer::class);
+        $app->singletonIf(EventExecutionContext::class);
         $app->singletonIf(
             ListenerFailureReporter::class,
             ErrorLogListenerFailureReporter::class,

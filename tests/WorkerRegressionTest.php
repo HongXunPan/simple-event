@@ -19,6 +19,14 @@ $tests['EventWorker 只依赖 Consumer 契约完成消息确认'] = static funct
         '成功消息未确认',
     );
     assertEventSame([], $context['consumer']->failed, '成功消息进入失败流程');
+    assertEventSame([
+        'message_id' => 'message-1',
+        'event_id' => 'event-worker-regression',
+        'trace_id' => 'trace-worker-regression',
+        'event_class' => WorkerRegressionOccurred::class,
+        'listener_class' => WorkerRegressionListener::class,
+    ], $context['log']->contexts[0], '监听器未获得完整消息上下文');
+    assertEventSame([], $context['executionContext']->snapshot(), '成功消息结束后上下文未清理');
     assertEventSame(0, $context['worker']->runOnce(), 'Consumer 清空后仍重复消费');
 };
 
@@ -60,6 +68,12 @@ $tests['EventWorker 只在完整批次之间停止'] = static function (): void 
         $context['log']->entries,
         '批次内监听器未全部执行',
     );
+    assertEventSame(
+        ['message-1', 'message-2'],
+        array_column($context['log']->contexts, 'message_id'),
+        '同批次消息上下文发生串线',
+    );
+    assertEventSame([], $context['executionContext']->snapshot(), '批次结束后上下文未清理');
 };
 
 $tests['EventWorker 不吞没 Consumer 运行异常'] = static function (): void {
@@ -136,6 +150,12 @@ $tests['EventWorker 确认 best-effort 失败消息并完成上报'] = static fu
         $context['reporter']->listeners,
         'best-effort 异常未按监听器上报',
     );
+    assertEventSame(
+        WorkerRegressionBestEffortListener::class,
+        $context['reporter']->contexts[0]['listener_class'] ?? null,
+        'best-effort Reporter 执行时缺少当前监听器上下文',
+    );
+    assertEventSame([], $context['executionContext']->snapshot(), 'best-effort 消息结束后上下文未清理');
 };
 
 $tests['EventWorker 将反序列化失败摘要交给 Consumer'] = static function (): void {
@@ -152,4 +172,35 @@ $tests['EventWorker 将反序列化失败摘要交给 Consumer'] = static functi
         '反序列化异常未清洗敏感信息',
     );
     assertEventSame('message-1', $failure->messageId, 'Failure 消息 ID 错误');
+    assertEventSame([], $context['executionContext']->snapshot(), '反序列化失败后上下文未清理');
+};
+
+$tests['EventWorker 在 ACK 异常后清理消息上下文'] = static function (): void {
+    $context = createWorkerRegressionContext(new WorkerRegressionSerializer(
+        makeWorkerRegressionMessage([WorkerRegressionListener::class]),
+    ));
+    $context['consumer']->acknowledgeFailure = new RuntimeException('ACK 失败');
+
+    assertEventThrows(
+        RuntimeException::class,
+        static fn () => $context['worker']->runOnce(),
+        'ACK 失败',
+        'Worker 吞没或改写了 ACK 异常',
+    );
+    assertEventSame([], $context['executionContext']->snapshot(), 'ACK 异常后上下文未清理');
+};
+
+$tests['EventWorker 在 fail 异常后清理消息上下文'] = static function (): void {
+    $context = createWorkerRegressionContext(new WorkerRegressionSerializer(
+        failure: new RuntimeException('反序列化失败'),
+    ));
+    $context['consumer']->failFailure = new RuntimeException('fail 失败');
+
+    assertEventThrows(
+        RuntimeException::class,
+        static fn () => $context['worker']->runOnce(),
+        'fail 失败',
+        'Worker 吞没或改写了 fail 异常',
+    );
+    assertEventSame([], $context['executionContext']->snapshot(), 'fail 异常后上下文未清理');
 };

@@ -248,6 +248,25 @@ Redis Streams 使用 at-least-once 语义：
 - XACK 成功后，XDEL 失败只留下可清理残留，不重新执行消息；
 - 消息内监听器必须是当前 Event 已登记异步监听器的子集。
 
+### Worker 执行上下文
+
+`EventExecutionContext` 是容器单例，用于暴露当前正在处理的异步消息事实。监听器和项目级失败 Reporter 执行期间可以读取：
+
+- `message_id`
+- `event_id`
+- `trace_id`
+- `event_class`
+- `listener_class`
+
+```php
+$context = app(HongXunPan\SimpleEvent\Execution\EventExecutionContext::class);
+$fields = $context->snapshot();
+```
+
+Worker 会在每条消息开始时建立上下文，并在 ACK、失败转存或异常结束后通过 `finally` 清空；上下文不能作为业务数据存储，也不能跨消息保留。
+
+项目覆盖 `TraceIdProvider` 时可使用 `FrameworkRequestTraceIdProvider`：HTTP 发布 Event 时沿用 framework Request ID，Worker 内再次发布 Event 时沿用当前消息的 trace ID。
+
 ## 项目覆盖
 
 项目 Provider 可以覆盖：
